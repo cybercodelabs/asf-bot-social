@@ -1,0 +1,11 @@
+.idea
+node_modules
+dist
+dist.zip
+out
+.DS_Store
+test.js
+notes.txt
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock

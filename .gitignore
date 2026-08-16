@@ -1,0 +1,26 @@
+# Dependencies / build
+**/node_modules/
+**/dist/
+**/bin/
+**/obj/
+**/out/
+.artifacts/
+
+# IDE / OS
+.idea/
+.vs/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+*.pfx
+*.key
+secrets/
+
+# Local ASF checkout used only to compile the plugin
+/ArchiSteamFarm/
+/ASF-Plugin/ArchiSteamFarm/

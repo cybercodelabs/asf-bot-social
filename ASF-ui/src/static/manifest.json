@@ -1,0 +1,21 @@
+{
+  "name": "ASF-ui",
+  "short_name": "ASF-ui",
+  "description": "The official web interface for ASF",
+  "icons": [
+    {
+      "src": "images/logo.webp",
+      "sizes": "any",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "images/logo.ico",
+      "sizes": "any",
+      "type": "image/x-icon",
+      "purpose": "any"
+    }
+  ],
+  "display": "standalone",
+  "background_color": "#222d32"
+}
