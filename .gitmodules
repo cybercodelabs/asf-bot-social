@@ -1,8 +1,0 @@
-[submodule "ASF-ui"]
-	path = ASF-ui
-	url = https://github.com/Jeremias0618/ASF-ui.git
-	branch = main
-[submodule "ASF-Plugin"]
-	path = ASF-Plugin
-	url = https://github.com/Jeremias0618/ASF-Plugin.git
-	branch = main

@@ -1,0 +1,86 @@
+
+name: Sync Source Repositories
+
+on:
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-source-repositories
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Synchronize Source Code
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout destination repository
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          submodules: false
+
+      - name: Synchronize repositories
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TEMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TEMP_DIR"' EXIT
+
+          sync_repository() {
+            local repository="$1"
+            local destination="$2"
+            local source="$TEMP_DIR/$destination"
+
+            echo "Synchronizing $repository..."
+
+            git clone \
+              --depth 1 \
+              --single-branch \
+              --branch main \
+              "https://github.com/$repository.git" \
+              "$source"
+
+            mkdir -p "$destination"
+
+            rsync -a --delete \
+              --exclude='.git' \
+              "$source/" "$destination/"
+
+            echo "Source commit:"
+            git -C "$source" rev-parse HEAD
+          }
+
+          sync_repository "Jeremias0618/ASF-Plugin" "ASF-Plugin"
+          sync_repository "Jeremias0618/ASF-ui" "ASF-ui"
+
+      - name: Detect and publish changes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A -f -- ASF-Plugin ASF-ui
+
+          if git diff --cached --quiet; then
+            echo "All repositories are up to date."
+            exit 0
+          fi
+
+          git diff --cached --stat
+
+          git commit -m "chore(sync): update ASF-Plugin and ASF-ui source code"
+
+          git push origin main
+
+          echo "Source repositories synchronized successfully."
