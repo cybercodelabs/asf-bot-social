@@ -1,0 +1,36 @@
+{
+	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+	"extends": [
+		"config:best-practices",
+		":automergeBranch",
+		":automergeDigest",
+		":automergeMinor",
+		":disableDependencyDashboard",
+		":disableRateLimiting",
+		":label(🤖 Automatic)"
+	],
+
+	"packageRules": [
+		{
+			"matchManagers": [ "github-actions" ],
+			"reviewers": [ "JustArchi" ]
+		},
+		{
+			"matchPackageNames": ["@fortawesome/vue-fontawesome"],
+			"allowedVersions": "<3.0.0"
+		},
+		{
+			"matchPackageNames": ["vue"],
+			"allowedVersions": "<3.0.0"
+		},
+		{
+			"matchPackageNames": ["vue-eslint-parser"],
+			"allowedVersions": "<9.0.0"
+		},
+		{
+			"matchPackageNames": ["vuex"],
+			"allowedVersions": "<4.0.0"
+		}
+	]
+}
