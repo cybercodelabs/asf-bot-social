@@ -2,17 +2,26 @@
   <div class="config-editor">
     <template v-if="nonEmptyCategories">
       <ConfigCategory v-for="category in nonEmptyCategories" :key="category.name" :name="category.name">
-        <component :is="componentFromField(field)" v-for="field in categoryFields(category.name)" :key="field.param" class="form-item--config" :schema="field" :currentValue="model[field.paramName]" @update="updateModel"></component>
+        <template v-for="field in categoryFields(category.name)">
+          <component :is="componentFromField(field)" :key="field.param" class="form-item--config" :schema="field" :currentValue="model[field.paramName]" @update="updateModel"></component>
+          <slot :name="`after-${field.param}`" :field="field"></slot>
+        </template>
       </ConfigCategory>
 
       <ConfigCategory v-if="uncategorizedFields.length" key="Other" :name="$t('other')">
-        <component :is="componentFromField(field)" v-for="field in uncategorizedFields" :key="field.param" class="form-item--config" :schema="field" :currentValue="model[field.paramName]" @update="updateModel"></component>
+        <template v-for="field in uncategorizedFields">
+          <component :is="componentFromField(field)" :key="field.param" class="form-item--config" :schema="field" :currentValue="model[field.paramName]" @update="updateModel"></component>
+          <slot :name="`after-${field.param}`" :field="field"></slot>
+        </template>
       </ConfigCategory>
     </template>
 
     <template v-if="!nonEmptyCategories">
       <fieldset class="config-uncategorized">
-        <component :is="componentFromField(field)" v-for="field in uncategorizedFields" :key="field.param" class="form-item--config" :schema="field" :currentValue="model[field.paramName]" @update="updateModel"></component>
+        <template v-for="field in uncategorizedFields">
+          <component :is="componentFromField(field)" :key="field.param" class="form-item--config" :schema="field" :currentValue="model[field.paramName]" @update="updateModel"></component>
+          <slot :name="`after-${field.param}`" :field="field"></slot>
+        </template>
       </fieldset>
     </template>
   </div>
@@ -131,6 +140,9 @@
           // eslint-disable-next-line vue/no-mutating-props
           this.model[field] = value;
         }
+
+        // The model is edited in place (keys are added and deleted): tell the parent, Vue cannot see it.
+        this.$emit('change', field);
       },
       isDefault(value, fieldSchema) {
         return this.isEqual(value, fieldSchema.defaultValue, fieldSchema.type);

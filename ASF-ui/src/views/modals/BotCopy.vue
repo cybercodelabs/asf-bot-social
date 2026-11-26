@@ -38,9 +38,9 @@
 <script>
   import { mapGetters } from 'vuex';
   import ConfigEditor from '../../components/Config/Editor.vue';
-  import delay from '../../utils/delay';
+  import { waitForBot } from '../../utils/botLogin';
   import botExists from '../../utils/botExists';
-  import { get } from '../../utils/storage';
+  import { peekParameterDescriptions } from '../../utils/loadParameterDescriptions';
   import { newBotCategories } from '../../utils/configCategories';
   import isSameConfig from '../../utils/isSameConfig';
   import unsavedChangesMixin from '../../mixins/unsaved-changes';
@@ -52,6 +52,8 @@
     components: { ConfigEditor },
     mixins: [unsavedChangesMixin],
     data() {
+      // The wiki cache may be missing or expired now that BotConfig no longer waits for it.
+      const descriptions = peekParameterDescriptions(this.$i18n.locale) || {};
       const fields = [
         {
           defaultValue: '',
@@ -66,15 +68,14 @@
           param: 'SteamLogin',
           paramName: 'SteamLogin',
           type: 'string',
-          description: get(`cache:parameter-descriptions:${this.$i18n.locale}`).descriptions.SteamLogin,
-
+          description: descriptions.SteamLogin,
         },
         {
           defaultValue: '',
           param: 'SteamPassword',
           paramName: 'SteamPassword',
           type: 'string',
-          description: get(`cache:parameter-descriptions:${this.$i18n.locale}`).descriptions.SteamPassword,
+          description: descriptions.SteamPassword,
         },
       ];
 
@@ -141,11 +142,14 @@
         this.creating = true;
 
         try {
-          await this.$http.post(`bot/${this.model.Name}`, { botConfig: config });
-          await delay(1000);
-          await this.$store.dispatch('bots/updateBot', { name: this.model.Name });
+          const { Name: name } = this.model;
+          await this.$http.post(`bot/${name}`, { botConfig: config });
+
+          const created = await waitForBot(name);
           markClean();
-          this.$parent.close();
+
+          if (created) this.$router.replace({ name: 'bot-login', params: { bot: name } });
+          else this.$parent.close();
         } catch (err) {
           this.$error(err.message);
         } finally {

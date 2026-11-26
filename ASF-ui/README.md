@@ -41,6 +41,38 @@
 > [!IMPORTANT]
 > Bot Social (friends, community, games, wishlist, inventory transfer) requires the companion plugin **[ASFBotSocial](https://github.com/Jeremias0618/ASF-Plugin)**. The stock ASF `www/` UI does not include those screens.
 
+## Steam sign-in wizard (`/bot/<name>/login`)
+
+The wizard only uses the **official ASF IPC** (`Bot`, `Bot/Input`, `Bot/Start`, `Bot/Stop`). It works with stock ASF and does **not** need `ASFBotSocial`. Success is shown only when ASF reports `IsConnectedAndLoggedOn`.
+
+The table separates what the API admits from what was actually exercised end to end (official ASF 6.3.10.3, non-headless, with test accounts that cannot log in).
+
+| Case | What the API admits | Tested end to end | Where it is finished |
+| --- | --- | --- | --- |
+| Create / start / stop the bot | Yes | Yes | Web |
+| Choose **QR** or **credentials** before starting a stopped bot (`Input QrCodeLogin = Y/N`) | Yes, only in a non-headless ASF and when ASF is not already asking | Yes: `Y` shows the QR in the web, `N` goes on to credentials | Web |
+| **Create new bot** with *Scan QR code*: saves the bot temporarily stopped (`Enabled: false`), with `SteamLogin` only if it was typed (never the password), sends `QrCodeLogin = Y` and starts it; once Steam confirms the connection the chosen *Bot status* is saved, after asking for the Steam username if it is missing | Yes, only in a non-headless ASF | Yes: the QR shows in the web with no `Y` typed in the console, on official ASF without `ASFBotSocial`; a failed start keeps the bot and *Try again* reuses it. The steps after the connection were exercised with a **simulated** "connected" signal (and simulated SteamIDs): the username step, the final save (config ends with `Enabled` + `SteamLogin`), a failed save with retry, *Disabled* (saved, ASF stops the bot), and the duplicated-account notice. After restarting ASF the enabled bot starts by itself and the disabled one does not. **Not tested**: a real approved QR, a restart that reuses a stored token without asking again, a QR approved by another account, or two bots on one real account | Web |
+| Send username and password in advance (`Login`, `Password`) | Yes (kept in memory, never saved) | Yes: the attempt starts; the account used was invalid | Web |
+| Answer a `Y/N` question that ASF **already has open** in its console | No (ASF reads it from the console) | Yes: the wizard shows it and offers no buttons | **ASF console** (or cancel and choose again from the web) |
+| Steam Guard e-mail code, mobile 2FA code, backup code, parental PIN | Yes, when ASF asks (or sent in advance) | No: needs a valid account | Web (`Bot/Input`) |
+| QR in headless / service mode | ASF never asks; it uses credentials | No | ASF console / config |
+| Mobile approval vs code (`Y/N`) | Only a console question | No | **ASF console** |
+| Approval itself, once Steam offers it | Yes | No | Steam mobile app; the wizard keeps polling |
+| Full valid sign-in until "Connected" | Yes | **No** | - |
+| Cryptkey | No | No | ASF console / startup arguments |
+
+Notes on the method choice:
+
+- It is only shown when the bot is stopped and ASF is not headless. If ASF is already waiting in its console, the wizard says so and the question must be answered there.
+- A pre-answer is **single use**: ASF consumes it, and if the sign-in fails it may ask again in its console. Sending it in advance is not the same as answering a question that is already open.
+- In *Create new bot*, *Bot status* is shown with both methods and defaults to *Enabled* («Starts the bot automatically when ASF starts»). Starting now and starting automatically are different decisions: while creating, the bot is saved temporarily stopped (`Enabled: false`), because saving it enabled would make ASF start it before the QR choice arrives. The status the user picked is kept (in `sessionStorage`, with no secrets) and ASF-ui saves it once ASF reports the bot as connected and logged on. Saving the config makes ASF stop and start that bot again (a brief reconnection); with `UseLoginKeys` on and an approved session, ASF reuses the saved token instead of asking for another QR. If that final save fails, the wizard says the session started but the status was not saved and offers *Retry saving*. If the user chose *Disabled*, nothing else is saved.
+- In QR mode the form keeps *Steam username* (optional) and hides *Steam password*, which is never sent. ASF receives the account name when the QR is approved and uses it in memory only; the official IPC does not return it, and `GET Bot` never returns `SteamLogin`. So, if it was left out, ASF-ui shows a short *Save Steam username* step once the bot is connected (only the Steam sign-in name — not the bot name, the profile alias or the SteamID), and saves it together with the chosen *Bot status*; without it the bot cannot sign in again after ASF restarts. Leaving earlier keeps the bot connected and says that the reconnect configuration is still pending (the step comes back when the window is reopened, for 12 hours in the same tab). If the username was typed before, ASF checks that the QR is approved by that account. With *Disabled* chosen, saving the username makes ASF stop the bot, as that setting implies.
+- Duplicated account: once a new bot is connected, ASF-ui compares its SteamID64 (as a string) with the other bots, ignoring itself and empty or `0` values. On a match the wizard says *This Steam account is already associated with the bot X*, does not enable the new bot or save anything, keeps the existing bot untouched and offers *Stop this bot* or *Delete new bot* (which asks for confirmation). **Limit:** ASF only exposes a SteamID after authenticating, so a stopped or disconnected bot cannot be compared; Steam may also have closed one of the two sessions before the notice. Only bots created from this form are checked.
+- The *Name* field is required when creating and editing (empty or whitespace-only blocks the buttons and the submit; reserved and duplicate names are still rejected). If ASF is headless the QR option is disabled and the form says why.
+- `N` only advances when the bot already has credentials: saved in its config, or sent in advance from the form.
+- ASF does not cancel a QR session when a bot is stopped, so it can keep publishing a stale challenge. When you pick credentials, the wizard ignores any QR challenge published during that attempt.
+
+Nothing here parses logs, writes to stdin or modifies ASF.
 ## Preview
 
 <table>
